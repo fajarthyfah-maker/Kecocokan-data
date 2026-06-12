@@ -30,7 +30,6 @@ if st.button("Analisis Statistik Jawaban", type="primary"):
                 continue
             
             # Cek apakah baris ini berisi kumpulan angka atau nama
-            # Kita pecah string, jika elemen pertama bukan angka berarti itu Nama
             tokens = clean_line.split()
             if not tokens[0].isdigit():
                 current_nama = clean_line
@@ -58,18 +57,43 @@ if st.button("Analisis Statistik Jawaban", type="primary"):
             # Buat Kolom Tampilan di Web
             col1, col2 = st.columns(2)
 
-            # --- KOLOM 1: Frekuensi Angka ---
+            # --- KOLOM 1: Frekuensi Angka (FORMAT BARU BERDASARKAN JUMLAH PEMILIH) ---
             with col1:
                 st.subheader("🔢 Frekuensi Angka Pasaran")
-                st.caption("Angka yang paling sering muncul/diikuti banyak orang.")
+                st.caption("Angka-angka yang memiliki jumlah total pemilih yang sama.")
                 
-                # Urutkan angka dari yang paling banyak dipilih
-                angka_terurut = sorted(peta_angka.items(), key=lambda x: len(x[1]), reverse=True)
+                # Mengelompokkan angka berdasarkan JUMLAH (FREKUENSI) pemilihnya
+                # Key: jumlah orang (int), Value: { "angka": [list angka], "nama": set(semua nama unik) }
+                peta_jumlah_pemilih = {}
                 
-                for num, daftar_nama in angka_terurut:
-                    jumlah = len(daftar_nama)
-                    st.markdown(f"**Angka {num}** dipilih oleh `{jumlah} orang`")
-                    st.caption(f"Dipilih oleh: {', '.join(daftar_nama)}")
+                for num, daftar_nama in peta_angka.items():
+                    jumlah_pemilih = len(daftar_nama)
+                    
+                    if jumlah_pemilih not in peta_jumlah_pemilih:
+                        peta_jumlah_pemilih[jumlah_pemilih] = {
+                            "angka": [],
+                            "nama": set()
+                        }
+                    
+                    peta_jumlah_pemilih[jumlah_pemilih]["angka"].append(num)
+                    # Gabungkan nama-nama yang memilih angka ini ke dalam set unik
+                    peta_jumlah_pemilih[jumlah_pemilih]["nama"].update(daftar_nama)
+                
+                # Urutkan dari jumlah orang terbanyak ke terkecil
+                jumlah_terurut = sorted(peta_jumlah_pemilih.items(), key=lambda x: x[0], reverse=True)
+                
+                for jumlah_orang, data_kelompok in jumlah_terurut:
+                    # Urutkan nama secara alfabetis untuk tampilan
+                    daftar_nama_unik = sorted(list(data_kelompok["nama"]))
+                    string_nama = ", ".join(daftar_nama_unik)
+                    
+                    # Urutkan angka dan gabungkan dengan tanda bintang (*)
+                    daftar_angka_urut = sorted(data_kelompok["angka"])
+                    string_angka = "*".join(daftar_angka_urut)
+                    
+                    # Tampilan output sesuai request baru
+                    st.markdown(f"**Dipilih oleh {jumlah_orang} orang** (`{string_nama}`)")
+                    st.markdown(f"👉 **Angka:** `{string_angka}`")
                     st.divider()
 
             # --- KOLOM 2: Analisis Tingkat Kemiripan ---
@@ -113,3 +137,4 @@ if st.button("Analisis Statistik Jawaban", type="primary"):
                     st.markdown(f"**Skor:** `{row['Skor Pasaran']}` | **Status:** {row['Status']}")
                     st.caption(f"Detail kemunculan angka: [{row['Detail']}]")
                     st.divider()
+
